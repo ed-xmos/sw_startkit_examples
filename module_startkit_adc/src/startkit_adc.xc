@@ -9,7 +9,7 @@ out port adc_sample = ADC_TRIG_PORT;            //Trigger port for ADC - defined
 
 #pragma select handler                          //Special function to allow select on inuint primative
 void get_adc_data(chanend c_adc, unsigned &data){
-    data = inuint(c_adc);                       //Get ADC packet one (2 x 16b samps)
+    data = inuint(c_adc);                       //Get half of an ADC packet (2 x 16b samps)
 }
 
 static void init_adc_network(void) {
@@ -38,7 +38,7 @@ static void init_adc_periph(chanend c) { //Configures the ADC peripheral for thi
      write_periph_32(adc_tile, 2, 0xc, 1, data);  //Enable Ch 3
 
 
-     data[0] = 0x10401;                         //16 bits per sample, 4 samples per 32b packet, calibrate off, ADC on
+     data[0] = 0x10401;                         //16 bits per sample, 4 x 16b samples per 64b packet, calibrate off, ADC on
      write_periph_32(adc_tile, 2, 0x20, 1, data);
 
      time = 0;
@@ -109,8 +109,8 @@ void adc_task(server startkit_adc_if i_adc, chanend c_adc, int trigger_period){
         break;
 
                                             //Get ADC samples from packet phase of ADC state machine
-      case (adc_state == 9) => get_adc_data(c_adc, adc_samps[0]): //Get ADC packet (2 x 16b samps)
-        get_adc_data(c_adc, adc_samps[1]);  //Get second packet
+      case (adc_state == 9) => get_adc_data(c_adc, adc_samps[0]): //Get first ADC packet (2 x 16b samps)
+        get_adc_data(c_adc, adc_samps[1]);  //Get second ADC packet
         chkct(c_adc, 1);                    //Wait for end token on ADC channel
         i_adc.complete();                   //Signal to client we're ready
         adc_state = 0;                      //Reset tigger state machine
